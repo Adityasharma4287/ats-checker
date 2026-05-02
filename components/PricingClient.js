@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { Target, CheckCircle, Crown, ArrowRight, Zap } from 'lucide-react'
+import { Target, CheckCircle, Crown, Zap } from 'lucide-react'
 
 export default function PricingClient({ plans, currentPlan, isLoggedIn }) {
   const [loadingPlan, setLoadingPlan] = useState(null)
@@ -21,15 +21,14 @@ export default function PricingClient({ plans, currentPlan, isLoggedIn }) {
         body: JSON.stringify({ plan: planKey }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) throw new Error(data.error || 'Subscription failed')
 
-      // Load Razorpay
       const script = document.createElement('script')
       script.src = 'https://checkout.razorpay.com/v1/checkout.js'
       document.body.appendChild(script)
       script.onload = () => {
         const rzp = new window.Razorpay({
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || data.key_id,
+          key: data.key_id,
           subscription_id: data.subscription_id,
           name: 'ResumeATS',
           description: `${planKey.charAt(0).toUpperCase() + planKey.slice(1)} Plan`,
@@ -92,7 +91,6 @@ export default function PricingClient({ plans, currentPlan, isLoggedIn }) {
                     </span>
                   </div>
                 )}
-
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-1">
                     {key !== 'free' && <Crown size={16} className="text-accent" />}
@@ -108,7 +106,6 @@ export default function PricingClient({ plans, currentPlan, isLoggedIn }) {
                     {plan.checksPerMonth === 999999 ? 'Unlimited checks' : `${plan.checksPerMonth} checks per month`}
                   </p>
                 </div>
-
                 <ul className="space-y-2.5 mb-8 flex-1">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm">
@@ -117,7 +114,6 @@ export default function PricingClient({ plans, currentPlan, isLoggedIn }) {
                     </li>
                   ))}
                 </ul>
-
                 {isCurrent ? (
                   <div className="btn-secondary w-full justify-center cursor-default opacity-70">
                     Current Plan

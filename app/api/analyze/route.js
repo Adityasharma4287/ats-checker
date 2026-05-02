@@ -7,15 +7,13 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(request) {
   try {
-    // 1. Auth check
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2. Get profile + check limits
-    const serviceClient = createServiceClient()
+    const serviceClient = await createServiceClient()
     const { data: profile } = await serviceClient
       .from('profiles').select('*').eq('id', user.id).single()
 
@@ -30,13 +28,11 @@ export async function POST(request) {
       )
     }
 
-    // 3. Parse request
     const { resume, jobDescription } = await request.json()
     if (!resume?.trim() || !jobDescription?.trim()) {
       return NextResponse.json({ error: 'Resume and job description are required' }, { status: 400 })
     }
 
-    // 4. Build Claude prompt based on plan
     const isProOrHigher = plan === 'pro' || plan === 'unlimited'
 
     const systemPrompt = `You are an expert ATS (Applicant Tracking System) analyzer and career coach. 
@@ -54,8 +50,8 @@ Analyze resumes against job descriptions and return a JSON response ONLY (no mar
     "education_fit": <0-100>,
     "format_quality": <0-100>
   },
-  "keywords_found": ["keyword1", "keyword2", ...],
-  "keywords_missing": ["keyword1", "keyword2", ...],
+  "keywords_found": ["keyword1", "keyword2"],
+  "keywords_missing": ["keyword1", "keyword2"],
   "suggestions": [
     {
       "section": "<section name>",
@@ -89,7 +85,6 @@ Return ONLY valid JSON, no other text.`
       system: systemPrompt,
     })
 
-    // 5. Parse Claude response
     let analysisData
     try {
       const rawText = message.content[0].text.trim()
@@ -99,8 +94,7 @@ Return ONLY valid JSON, no other text.`
       return NextResponse.json({ error: 'Analysis parsing failed. Please try again.' }, { status: 500 })
     }
 
-    // 6. Save to database
-    const { data: savedAnalysis, error: saveError } = await serviceClient
+    const { data: savedAnalysis } = await serviceClient
       .from('analyses')
       .insert({
         user_id: user.id,
@@ -116,15 +110,11 @@ Return ONLY valid JSON, no other text.`
       .select()
       .single()
 
-    if (saveError) console.error('Save error:', saveError)
-
-    // 7. Increment usage count
     await serviceClient
       .from('profiles')
       .update({ checks_used_this_month: checksUsed + 1 })
       .eq('id', user.id)
 
-    // 8. Return result
     return NextResponse.json({
       ...analysisData,
       analysis_id: savedAnalysis?.id,

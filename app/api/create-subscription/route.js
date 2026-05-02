@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
-import { createClient, createServiceClient } from '@/lib/supabase-server'
+import { createClient } from '@/lib/supabase-server'
 import { PLANS } from '@/lib/plans'
-
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-})
 
 export async function POST(request) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -20,7 +15,11 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
     }
 
-    // Create Razorpay subscription
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    })
+
     const subscription = await razorpay.subscriptions.create({
       plan_id: planConfig.razorpayPlanId,
       customer_notify: 1,

@@ -4,13 +4,12 @@ import { redirect } from 'next/navigation'
 import { CheckCircle, ArrowRight, Zap, Target, FileText, TrendingUp } from 'lucide-react'
 
 export default async function HomePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect('/dashboard')
 
   return (
     <div className="min-h-screen grain">
-      {/* Navbar */}
       <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
@@ -25,13 +24,11 @@ export default async function HomePage() {
         </div>
       </nav>
 
-      {/* Hero */}
       <section className="max-w-4xl mx-auto px-6 pt-20 pb-16 text-center">
         <div className="inline-flex items-center gap-2 bg-accent-light text-accent px-4 py-1.5 rounded-full text-sm font-medium mb-8">
           <Zap size={14} />
           AI-powered ATS scoring in under 10 seconds
         </div>
-        
         <h1 className="font-display text-6xl md:text-7xl leading-tight mb-6">
           Your resume is
           <br />
@@ -39,12 +36,10 @@ export default async function HomePage() {
           <br />
           Fix it now.
         </h1>
-        
         <p className="text-ink-muted text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
           75% of resumes never reach a human. Paste your resume, paste the job description — 
           get an instant ATS score, missing keywords, and exact fixes in seconds.
         </p>
-        
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/signup" className="btn-primary text-base px-8 py-4">
             Check My Resume Free
@@ -54,11 +49,9 @@ export default async function HomePage() {
             View Pricing
           </Link>
         </div>
-        
         <p className="text-ink-muted/60 text-sm mt-4">No credit card • 3 free checks every month</p>
       </section>
 
-      {/* Stats */}
       <section className="max-w-4xl mx-auto px-6 pb-16">
         <div className="grid grid-cols-3 gap-6">
           {[
@@ -74,7 +67,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* How it works */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
         <h2 className="font-display text-4xl text-center mb-12">How it works</h2>
         <div className="grid md:grid-cols-3 gap-6">
@@ -95,7 +87,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Features */}
       <section className="bg-ink text-white py-20">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="font-display text-4xl text-center mb-4">Everything you need to get past ATS</h2>
@@ -120,7 +111,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="max-w-2xl mx-auto px-6 py-20 text-center">
         <h2 className="font-display text-5xl mb-4">Ready to fix your resume?</h2>
         <p className="text-ink-muted mb-8">Start free. No credit card required.</p>
@@ -130,7 +120,6 @@ export default async function HomePage() {
         </Link>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-paper-warm py-8">
         <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-ink-muted/60">
           <span>© 2024 ResumeATS. Made for students & job seekers.</span>
