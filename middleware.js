@@ -1,8 +1,15 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
-export async function middleware(request) {
-  let supabaseResponse = NextResponse.next({ request })
+import { NextResponse } from 'next/server'
+
+export function middleware(request) {
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: [],
+}
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
