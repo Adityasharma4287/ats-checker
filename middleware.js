@@ -1,50 +1,18 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-
 import { NextResponse } from 'next/server'
 
 export function middleware(request) {
+  const { pathname } = request.nextUrl
+
+  const token = request.cookies.get('sb-access-token') ||
+    request.cookies.get('sb-refresh-token')
+
+  if (pathname.startsWith('/dashboard') && !token) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: [],
-}
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll() },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const protectedRoutes = ['/dashboard']
-  const isProtected = protectedRoutes.some(r => request.nextUrl.pathname.startsWith(r))
-  if (isProtected && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  const authRoutes = ['/login', '/signup']
-  const isAuth = authRoutes.some(r => request.nextUrl.pathname.startsWith(r))
-  if (isAuth && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  return supabaseResponse
-}
-
-export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/signup'],
+  matcher: ['/dashboard/:path*'],
 }
