@@ -45,25 +45,25 @@ Return this exact JSON structure:
     "education_fit": <0-100>,
     "format_quality": <0-100>
   },
-  "keywords_found": ["list", "of", "keywords", "found", "in", "resume"],
-  "keywords_missing": ["important", "keywords", "from", "JD", "not", "in", "resume"],
+  "keywords_found": ["actual", "keywords", "from", "resume"],
+  "keywords_missing": ["important", "keywords", "from", "JD", "missing"],
   "suggestions": [
     {
-      "section": "<exact section name>",
+      "section": "<section name>",
       "priority": "high|medium|low",
-      "suggestion": "<specific actionable advice for THIS resume>",
+      "suggestion": "<specific advice for THIS resume>",
       "example": "<concrete example>"
     }
-  ]${isProOrHigher ? ',\n  "linkedin_tip": "<specific LinkedIn tip for this job>"' : ''}
+  ]${isProOrHigher ? ',\n  "linkedin_tip": "<specific LinkedIn tip>"' : ''}
 }
 
 Rules:
-- Analyze ONLY what is in the resume — do not make up information
-- keywords_found: max 12 keywords actually present in resume
-- keywords_missing: max 10 important JD keywords missing from resume  
-- suggestions: ${isProOrHigher ? '6-8' : '3-4'} specific suggestions based on actual resume content
-- ats_score: realistic score (most resumes 40-70 range)
-- Return ONLY JSON, nothing else
+- Analyze ONLY what is in the resume
+- keywords_found: max 12 keywords actually in resume
+- keywords_missing: max 10 important JD keywords missing
+- suggestions: ${isProOrHigher ? '6-8' : '3-4'} specific suggestions
+- ats_score: realistic (40-70 range for most resumes)
+- Return ONLY JSON
 
 RESUME:
 ${resume}
@@ -71,29 +71,28 @@ ${resume}
 JOB DESCRIPTION:
 ${jobDescription}`
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 2000,
-          }
-        })
-      }
-    )
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 2000,
+      })
+    })
 
-    const geminiData = await response.json()
-    
+    const groqData = await response.json()
+
     if (!response.ok) {
-      console.error('Gemini error:', geminiData)
+      console.error('Groq error:', groqData)
       return NextResponse.json({ error: 'AI analysis failed. Please try again.' }, { status: 500 })
     }
 
-    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    const rawText = groqData.choices?.[0]?.message?.content?.trim()
     if (!rawText) {
       return NextResponse.json({ error: 'No response from AI. Please try again.' }, { status: 500 })
     }
