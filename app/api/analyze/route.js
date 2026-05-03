@@ -30,45 +30,80 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Resume and job description are required' }, { status: 400 })
     }
 
-    // Mock response - Anthropic API credit add hone ke baad replace karna
-    const analysisData = {
-      ats_score: 72,
-      overall_feedback: "Your resume shows good technical skills alignment with the job description. Adding more specific keywords and quantifying achievements will significantly improve your ATS score.",
-      score_breakdown: {
-        keyword_match: 70,
-        skills_alignment: 78,
-        experience_relevance: 75,
-        education_fit: 68,
-        format_quality: 72
-      },
-      keywords_found: ["React", "Node.js", "JavaScript", "SQL", "Python", "Git", "MongoDB", "REST API"],
-      keywords_missing: ["Docker", "Agile", "TypeScript", "AWS", "CI/CD", "Kubernetes", "GraphQL"],
-      suggestions: [
-        {
-          section: "Skills",
-          priority: "high",
-          suggestion: "Add missing technical keywords: Docker, TypeScript, AWS to match job requirements",
-          example: "Skills: JavaScript, React, Node.js, TypeScript, Docker, AWS, SQL"
-        },
-        {
-          section: "Experience",
-          priority: "high",
-          suggestion: "Quantify your achievements with specific numbers and metrics",
-          example: "Improved application performance by 40%, reducing load time from 3s to 1.8s"
-        },
-        {
-          section: "Summary",
-          priority: "medium",
-          suggestion: "Add a professional summary mentioning years of experience and key technologies",
-          example: "3+ years Software Engineer specializing in React.js and Node.js applications"
-        },
-        {
-          section: "Experience",
-          priority: "low",
-          suggestion: "Use more action verbs at the start of each bullet point",
-          example: "Architected, Implemented, Optimized, Delivered, Collaborated"
-        }
-      ]
+    const isProOrHigher = plan === 'pro' || plan === 'unlimited'
+
+    const prompt = `You are an expert ATS (Applicant Tracking System) analyzer. Analyze this resume against the job description and return ONLY valid JSON, no markdown, no explanation.
+
+Return this exact JSON structure:
+{
+  "ats_score": <integer 0-100>,
+  "overall_feedback": "<2-3 sentence specific feedback about THIS resume and THIS job>",
+  "score_breakdown": {
+    "keyword_match": <0-100>,
+    "skills_alignment": <0-100>,
+    "experience_relevance": <0-100>,
+    "education_fit": <0-100>,
+    "format_quality": <0-100>
+  },
+  "keywords_found": ["list", "of", "keywords", "found", "in", "resume"],
+  "keywords_missing": ["important", "keywords", "from", "JD", "not", "in", "resume"],
+  "suggestions": [
+    {
+      "section": "<exact section name>",
+      "priority": "high|medium|low",
+      "suggestion": "<specific actionable advice for THIS resume>",
+      "example": "<concrete example>"
+    }
+  ]${isProOrHigher ? ',\n  "linkedin_tip": "<specific LinkedIn tip for this job>"' : ''}
+}
+
+Rules:
+- Analyze ONLY what is in the resume — do not make up information
+- keywords_found: max 12 keywords actually present in resume
+- keywords_missing: max 10 important JD keywords missing from resume  
+- suggestions: ${isProOrHigher ? '6-8' : '3-4'} specific suggestions based on actual resume content
+- ats_score: realistic score (most resumes 40-70 range)
+- Return ONLY JSON, nothing else
+
+RESUME:
+${resume}
+
+JOB DESCRIPTION:
+${jobDescription}`
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2000,
+          }
+        })
+      }
+    )
+
+    const geminiData = await response.json()
+    
+    if (!response.ok) {
+      console.error('Gemini error:', geminiData)
+      return NextResponse.json({ error: 'AI analysis failed. Please try again.' }, { status: 500 })
+    }
+
+    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    if (!rawText) {
+      return NextResponse.json({ error: 'No response from AI. Please try again.' }, { status: 500 })
+    }
+
+    let analysisData
+    try {
+      const jsonText = rawText.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
+      analysisData = JSON.parse(jsonText)
+    } catch {
+      return NextResponse.json({ error: 'Analysis parsing failed. Please try again.' }, { status: 500 })
     }
 
     const { data: savedAnalysis } = await serviceClient
