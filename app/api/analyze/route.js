@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { createClient, createServiceClient } from '@/lib/supabase-server'
 import { getPlanLimits } from '@/lib/plans'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(request) {
   try {
@@ -33,65 +30,45 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Resume and job description are required' }, { status: 400 })
     }
 
-    const isProOrHigher = plan === 'pro' || plan === 'unlimited'
-
-    const systemPrompt = `You are an expert ATS (Applicant Tracking System) analyzer and career coach. 
-Analyze resumes against job descriptions and return a JSON response ONLY (no markdown, no explanation, just JSON).`
-
-    const userPrompt = `Analyze this resume against the job description and return JSON matching this exact structure:
-
-{
-  "ats_score": <integer 0-100>,
-  "overall_feedback": "<2-3 sentence summary of match quality>",
-  "score_breakdown": {
-    "keyword_match": <0-100>,
-    "skills_alignment": <0-100>,
-    "experience_relevance": <0-100>,
-    "education_fit": <0-100>,
-    "format_quality": <0-100>
-  },
-  "keywords_found": ["keyword1", "keyword2"],
-  "keywords_missing": ["keyword1", "keyword2"],
-  "suggestions": [
-    {
-      "section": "<section name>",
-      "priority": "high|medium|low",
-      "suggestion": "<specific actionable advice>",
-      "example": "<optional concrete example>"
-    }
-  ]${isProOrHigher ? `,
-  "linkedin_tip": "<specific LinkedIn optimization tip based on the job>"` : ''}
-}
-
-Rules:
-- keywords_found: max 12 important keywords that ARE in the resume
-- keywords_missing: max 10 important keywords from JD that are NOT in resume
-- suggestions: provide ${isProOrHigher ? '6-8' : '3-4'} suggestions total
-- Be specific and actionable, not generic
-- ats_score must be realistic (most resumes score 40-70)
-
-RESUME:
-${resume}
-
-JOB DESCRIPTION:
-${jobDescription}
-
-Return ONLY valid JSON, no other text.`
-
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: userPrompt }],
-      system: systemPrompt,
-    })
-
-    let analysisData
-    try {
-      const rawText = message.content[0].text.trim()
-      const jsonText = rawText.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
-      analysisData = JSON.parse(jsonText)
-    } catch {
-      return NextResponse.json({ error: 'Analysis parsing failed. Please try again.' }, { status: 500 })
+    // Mock response - Anthropic API credit add hone ke baad replace karna
+    const analysisData = {
+      ats_score: 72,
+      overall_feedback: "Your resume shows good technical skills alignment with the job description. Adding more specific keywords and quantifying achievements will significantly improve your ATS score.",
+      score_breakdown: {
+        keyword_match: 70,
+        skills_alignment: 78,
+        experience_relevance: 75,
+        education_fit: 68,
+        format_quality: 72
+      },
+      keywords_found: ["React", "Node.js", "JavaScript", "SQL", "Python", "Git", "MongoDB", "REST API"],
+      keywords_missing: ["Docker", "Agile", "TypeScript", "AWS", "CI/CD", "Kubernetes", "GraphQL"],
+      suggestions: [
+        {
+          section: "Skills",
+          priority: "high",
+          suggestion: "Add missing technical keywords: Docker, TypeScript, AWS to match job requirements",
+          example: "Skills: JavaScript, React, Node.js, TypeScript, Docker, AWS, SQL"
+        },
+        {
+          section: "Experience",
+          priority: "high",
+          suggestion: "Quantify your achievements with specific numbers and metrics",
+          example: "Improved application performance by 40%, reducing load time from 3s to 1.8s"
+        },
+        {
+          section: "Summary",
+          priority: "medium",
+          suggestion: "Add a professional summary mentioning years of experience and key technologies",
+          example: "3+ years Software Engineer specializing in React.js and Node.js applications"
+        },
+        {
+          section: "Experience",
+          priority: "low",
+          suggestion: "Use more action verbs at the start of each bullet point",
+          example: "Architected, Implemented, Optimized, Delivered, Collaborated"
+        }
+      ]
     }
 
     const { data: savedAnalysis } = await serviceClient
