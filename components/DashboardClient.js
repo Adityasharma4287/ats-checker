@@ -1,13 +1,14 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import {
   Target, LogOut, Zap, FileText, Briefcase,
-  ChevronRight, Crown, AlertCircle, CheckCircle,
-  XCircle, TrendingUp, Clock, BarChart3, Upload,
-  File, X
+  Crown, AlertCircle, CheckCircle, XCircle,
+  TrendingUp, Clock, BarChart3, Upload, File,
+  X, Send, Bot, User, ChevronDown, ChevronUp,
+  Sparkles
 } from 'lucide-react'
 
 function ScoreRing({ score }) {
@@ -41,6 +42,153 @@ function KeywordBadge({ word, found }) {
   )
 }
 
+function AIAssistant({ resume, jobDescription, analysisResult }) {
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: '👋 Namaste! Main aapka AI Resume Coach hoon. Aapke resume ke baare mein kuch poochna hai? Main aapki poori madad karunga! 🚀'
+    }
+  ])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [isOpen, setIsOpen] = useState(true)
+  const messagesEndRef = useRef(null)
+
+  const quickQuestions = [
+    '📝 Mera resume improve kaise karoon?',
+    '🎯 Missing keywords kaise add karoon?',
+    '💼 Professional summary kaise likhein?',
+    '⭐ ATS score 90+ kaise karoon?',
+  ]
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  async function sendMessage(text) {
+    const msg = text || input.trim()
+    if (!msg) return
+    setInput('')
+    setMessages(prev => [...prev, { role: 'user', content: msg }])
+    setLoading(true)
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: msg,
+          resume,
+          jobDescription,
+          analysisResult
+        })
+      })
+      const data = await res.json()
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.reply || 'Sorry, kuch problem ho gayi. Dobara try karo.'
+      }])
+    } catch {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '⚠️ Network error. Please try again.'
+      }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="card overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-1"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+            <Sparkles size={16} className="text-white" />
+          </div>
+          <div className="text-left">
+            <p className="font-medium text-sm">AI Resume Coach</p>
+            <p className="text-xs text-ink-muted">Resume improve karne mein help</p>
+          </div>
+        </div>
+        {isOpen ? <ChevronUp size={16} className="text-ink-muted" /> : <ChevronDown size={16} className="text-ink-muted" />}
+      </button>
+
+      {isOpen && (
+        <div className="mt-4">
+          {/* Messages */}
+          <div className="h-64 overflow-y-auto space-y-3 mb-3 pr-1">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'assistant' ? 'bg-accent-light' : 'bg-paper-warm'}`}>
+                  {msg.role === 'assistant'
+                    ? <Bot size={14} className="text-accent" />
+                    : <User size={14} className="text-ink-muted" />
+                  }
+                </div>
+                <div className={`max-w-xs rounded-2xl px-3 py-2 text-xs leading-relaxed ${msg.role === 'assistant' ? 'bg-paper rounded-tl-none' : 'bg-accent text-white rounded-tr-none'}`}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex gap-2">
+                <div className="w-7 h-7 rounded-full bg-accent-light flex items-center justify-center">
+                  <Bot size={14} className="text-accent" />
+                </div>
+                <div className="bg-paper rounded-2xl rounded-tl-none px-3 py-2">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-ink-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-1.5 h-1.5 bg-ink-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-1.5 h-1.5 bg-ink-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Quick Questions */}
+          {messages.length <= 1 && (
+            <div className="grid grid-cols-2 gap-1.5 mb-3">
+              {quickQuestions.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => sendMessage(q)}
+                  className="text-left text-xs bg-paper hover:bg-paper-warm rounded-xl px-3 py-2 transition-colors leading-snug"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !loading && sendMessage()}
+              placeholder="Kuch poochho..."
+              className="input-field text-xs py-2 flex-1"
+              disabled={loading}
+            />
+            <button
+              onClick={() => sendMessage()}
+              disabled={loading || !input.trim()}
+              className="btn-primary px-3 py-2 text-xs"
+            >
+              <Send size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DashboardClient({ user, profile, plan, checksLeft, checksLimit, recentAnalyses }) {
   const router = useRouter()
   const fileInputRef = useRef(null)
@@ -50,60 +198,28 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [uploadedFile, setUploadedFile] = useState(null)
-  const [uploadMethod, setUploadMethod] = useState('paste') // 'paste' | 'file'
-
-  async function extractTextFromFile(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const text = e.target.result
-        resolve(text)
-      }
-      reader.readAsText(file)
-    })
-  }
+  const [uploadMethod, setUploadMethod] = useState('paste')
 
   async function handleFileUpload(e) {
-    const file = e.target.files[0]
-    if (!file) return
-    const maxSize = 5 * 1024 * 1024 // 5MB
-    if (file.size > maxSize) {
-      setError('File too large. Max 5MB allowed.')
-      return
-    }
-    const allowedTypes = ['text/plain', 'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.txt') && !file.name.endsWith('.doc') && !file.name.endsWith('.docx')) {
-      setError('Only .txt, .doc, .docx files supported. For PDF, copy-paste text.')
-      return
-    }
+    const file = e.target.files?.[0] || e
+    if (!file || !file.name) return
+    if (file.size > 5 * 1024 * 1024) { setError('File too large. Max 5MB.'); return }
     setUploadedFile(file)
     setError('')
-    try {
-      const text = await extractTextFromFile(file)
-      setResume(text)
-      setUploadMethod('file')
-    } catch {
-      setError('Could not read file. Please paste text manually.')
-    }
+    const reader = new FileReader()
+    reader.onload = (ev) => { setResume(ev.target.result); setUploadMethod('file') }
+    reader.readAsText(file)
   }
 
   function removeFile() {
-    setUploadedFile(null)
-    setResume('')
-    setUploadMethod('paste')
+    setUploadedFile(null); setResume(''); setUploadMethod('paste')
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   async function handleAnalyze(e) {
     e.preventDefault()
-    if (!resume.trim() || !jobDesc.trim()) {
-      setError('Please fill both resume and job description.')
-      return
-    }
-    setLoading(true)
-    setError('')
-    setResult(null)
+    if (!resume.trim() || !jobDesc.trim()) { setError('Please fill both resume and job description.'); return }
+    setLoading(true); setError(''); setResult(null)
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -124,18 +240,15 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
+    router.push('/'); router.refresh()
   }
 
   const scoreLabel = result
-    ? result.ats_score >= 75 ? 'Strong Match'
-      : result.ats_score >= 50 ? 'Needs Work' : 'Poor Match'
+    ? result.ats_score >= 75 ? 'Strong Match' : result.ats_score >= 50 ? 'Needs Work' : 'Poor Match'
     : null
 
   return (
     <div className="min-h-screen grain">
-      {/* Navbar */}
       <nav className="bg-white border-b border-paper-warm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -148,34 +261,27 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
             <span className={`badge ${plan === 'free' ? 'bg-paper-warm text-ink-muted' : 'bg-accent-light text-accent'}`}>
               {plan === 'free' ? 'Free' : <><Crown size={10} /> {plan}</>}
             </span>
-            {plan === 'free' && (
-              <Link href="/pricing" className="btn-primary text-xs px-3 py-1.5">Upgrade</Link>
-            )}
-            <button onClick={handleLogout} className="btn-ghost text-xs p-2">
-              <LogOut size={15} />
-            </button>
+            {plan === 'free' && <Link href="/pricing" className="btn-primary text-xs px-3 py-1.5">Upgrade</Link>}
+            <button onClick={handleLogout} className="btn-ghost text-xs p-2"><LogOut size={15} /></button>
           </div>
         </div>
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="grid lg:grid-cols-5 gap-6">
+
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-4">
             <div className="card p-4">
               <div className="w-10 h-10 bg-accent-light rounded-full flex items-center justify-center mb-3">
-                <span className="font-display text-accent text-lg">
-                  {(profile?.full_name || user.email)[0].toUpperCase()}
-                </span>
+                <span className="font-display text-accent text-lg">{(profile?.full_name || user.email)[0].toUpperCase()}</span>
               </div>
               <p className="font-medium text-sm truncate">{profile?.full_name || 'User'}</p>
               <p className="text-ink-muted text-xs truncate">{user.email}</p>
             </div>
 
             <div className="card p-4">
-              <p className="text-xs font-medium text-ink-muted mb-3 flex items-center gap-1.5">
-                <BarChart3 size={12} /> Monthly Usage
-              </p>
+              <p className="text-xs font-medium text-ink-muted mb-3 flex items-center gap-1.5"><BarChart3 size={12} /> Monthly Usage</p>
               <div className="flex items-end justify-between mb-2">
                 <span className="font-display text-2xl">{checksLimit - checksLeft}</span>
                 <span className="text-ink-muted text-xs">/ ∞</span>
@@ -184,22 +290,21 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
 
             {recentAnalyses.length > 0 && (
               <div className="card p-4">
-                <p className="text-xs font-medium text-ink-muted mb-3 flex items-center gap-1.5">
-                  <Clock size={12} /> Recent Checks
-                </p>
+                <p className="text-xs font-medium text-ink-muted mb-3 flex items-center gap-1.5"><Clock size={12} /> Recent Checks</p>
                 <div className="space-y-2">
                   {recentAnalyses.slice(0, 4).map(a => (
                     <div key={a.id} className="flex items-center justify-between">
-                      <span className={`text-xs font-medium ${a.ats_score >= 75 ? 'text-success' : a.ats_score >= 50 ? 'text-warn' : 'text-accent'}`}>
-                        {a.ats_score}/100
-                      </span>
-                      <span className="text-ink-muted text-xs">
-                        {new Date(a.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      </span>
+                      <span className={`text-xs font-medium ${a.ats_score >= 75 ? 'text-success' : a.ats_score >= 50 ? 'text-warn' : 'text-accent'}`}>{a.ats_score}/100</span>
+                      <span className="text-ink-muted text-xs">{new Date(a.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                     </div>
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* AI Assistant in sidebar when result shown */}
+            {result && (
+              <AIAssistant resume={resume} jobDescription={jobDesc} analysisResult={result} />
             )}
           </div>
 
@@ -219,111 +324,64 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
 
                 <form onSubmit={handleAnalyze} className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
-                    {/* Resume Section */}
                     <div>
                       <label className="block text-sm font-medium mb-2 flex items-center gap-1.5">
-                        <FileText size={14} className="text-accent" />
-                        Your Resume
+                        <FileText size={14} className="text-accent" /> Your Resume
                       </label>
-
-                      {/* Upload Options */}
                       <div className="flex gap-2 mb-3">
-                        <button type="button"
-                          onClick={() => setUploadMethod('paste')}
+                        <button type="button" onClick={() => setUploadMethod('paste')}
                           className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-all ${uploadMethod === 'paste' ? 'bg-accent text-white border-accent' : 'bg-white border-paper-warm text-ink-muted hover:border-accent'}`}>
                           ✏️ Paste Text
                         </button>
-                        <button type="button"
-                          onClick={() => fileInputRef.current?.click()}
+                        <button type="button" onClick={() => fileInputRef.current?.click()}
                           className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-all ${uploadMethod === 'file' ? 'bg-accent text-white border-accent' : 'bg-white border-paper-warm text-ink-muted hover:border-accent'}`}>
                           📁 Upload File
                         </button>
                       </div>
-
-                      {/* Hidden file input */}
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".txt,.doc,.docx"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-
-                      {/* Uploaded file indicator */}
+                      <input ref={fileInputRef} type="file" accept=".txt,.doc,.docx" onChange={handleFileUpload} className="hidden" />
                       {uploadedFile && (
                         <div className="flex items-center gap-2 bg-success-light text-success px-3 py-2 rounded-lg mb-2 text-xs">
-                          <File size={12} />
-                          <span className="flex-1 truncate">{uploadedFile.name}</span>
-                          <button type="button" onClick={removeFile}>
-                            <X size={12} />
-                          </button>
+                          <File size={12} /><span className="flex-1 truncate">{uploadedFile.name}</span>
+                          <button type="button" onClick={removeFile}><X size={12} /></button>
                         </div>
                       )}
-
-                      {/* Drag & Drop Area */}
                       {!uploadedFile && (
-                        <div
-                          className="border-2 border-dashed border-paper-warm rounded-xl p-4 text-center mb-2 cursor-pointer hover:border-accent transition-colors"
+                        <div className="border-2 border-dashed border-paper-warm rounded-xl p-4 text-center mb-2 cursor-pointer hover:border-accent transition-colors"
                           onClick={() => fileInputRef.current?.click()}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault()
-                            const file = e.dataTransfer.files[0]
-                            if (file) {
-                              const fakeEvent = { target: { files: [file] } }
-                              handleFileUpload(fakeEvent)
-                            }
-                          }}>
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f) }}>
                           <Upload size={20} className="text-ink-muted mx-auto mb-1" />
                           <p className="text-xs text-ink-muted">Drop .txt .doc .docx here</p>
                           <p className="text-xs text-ink-muted/60 mt-0.5">or click to browse</p>
                         </div>
                       )}
-
-                      <textarea
-                        value={resume}
-                        onChange={e => { setResume(e.target.value); setUploadMethod('paste') }}
-                        placeholder="Ya seedha resume text yahan paste karo..."
-                        rows={8}
-                        className="textarea-field"
-                        required
-                      />
+                      <textarea value={resume} onChange={e => { setResume(e.target.value); setUploadMethod('paste') }}
+                        placeholder="Ya seedha resume text yahan paste karo..." rows={8} className="textarea-field" required />
                       <p className="text-ink-muted/50 text-xs mt-1">{resume.length} characters</p>
                     </div>
 
-                    {/* Job Description Section */}
                     <div>
                       <label className="block text-sm font-medium mb-2 flex items-center gap-1.5">
-                        <Briefcase size={14} className="text-accent" />
-                        Job Description
+                        <Briefcase size={14} className="text-accent" /> Job Description
                       </label>
-
                       <div className="border-2 border-dashed border-paper-warm rounded-xl p-4 text-center mb-3">
                         <p className="text-xs text-ink-muted font-medium mb-1">📋 Job Description paste karo</p>
                         <p className="text-xs text-ink-muted/60">LinkedIn, Naukri, Indeed se copy karo</p>
                       </div>
-
-                      <textarea
-                        value={jobDesc}
-                        onChange={e => setJobDesc(e.target.value)}
-                        placeholder="Job description yahan paste karo — responsibilities, required skills, qualifications..."
-                        rows={8}
-                        className="textarea-field"
-                        required
-                      />
+                      <textarea value={jobDesc} onChange={e => setJobDesc(e.target.value)}
+                        placeholder="Job description yahan paste karo..." rows={8} className="textarea-field" required />
                       <p className="text-ink-muted/50 text-xs mt-1">{jobDesc.length} characters</p>
                     </div>
                   </div>
 
-                  {/* Tips */}
                   <div className="grid grid-cols-3 gap-3 text-xs text-ink-muted">
                     <div className="bg-paper rounded-lg p-3">
                       <p className="font-medium text-ink mb-1">📄 PDF Resume?</p>
-                      <p>PDF open karo → Ctrl+A → Ctrl+C → yahan paste karo</p>
+                      <p>PDF kholo → Ctrl+A → Ctrl+C → yahan paste karo</p>
                     </div>
                     <div className="bg-paper rounded-lg p-3">
                       <p className="font-medium text-ink mb-1">☁️ Google Drive?</p>
-                      <p>Drive mein file kholo → File → Download → .txt as download karo</p>
+                      <p>File → Download → .txt download → upload karo</p>
                     </div>
                     <div className="bg-paper rounded-lg p-3">
                       <p className="font-medium text-ink mb-1">💼 LinkedIn?</p>
@@ -333,25 +391,24 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
 
                   {error && (
                     <div className="flex items-center gap-2 bg-warn-light text-warn text-sm px-4 py-3 rounded-xl">
-                      <AlertCircle size={15} />
-                      {error}
+                      <AlertCircle size={15} />{error}
                     </div>
                   )}
 
                   <div className="flex items-center justify-between">
                     <span className="text-ink-muted text-sm">Unlimited checks available</span>
                     <button type="submit" disabled={loading} className="btn-primary px-8 py-3">
-                      {loading ? (
-                        <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Analyzing...</>
-                      ) : (
-                        <><Zap size={16} />Analyze Resume</>
-                      )}
+                      {loading
+                        ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Analyzing...</>
+                        : <><Zap size={16} />Analyze Resume</>
+                      }
                     </button>
                   </div>
                 </form>
               </div>
             ) : (
               <div className="space-y-5 animate-fade-up">
+                {/* Score */}
                 <div className="card">
                   <div className="flex flex-col sm:flex-row items-center gap-6">
                     <ScoreRing score={result.ats_score} />
@@ -368,6 +425,7 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
                   </div>
                 </div>
 
+                {/* Score Breakdown */}
                 {result.score_breakdown && (
                   <div className="card">
                     <h3 className="font-display text-xl mb-4 flex items-center gap-2">
@@ -389,6 +447,7 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
                   </div>
                 )}
 
+                {/* Keywords */}
                 <div className="card">
                   <h3 className="font-display text-xl mb-4">Keyword Analysis</h3>
                   <div className="grid sm:grid-cols-2 gap-6">
@@ -397,7 +456,7 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
                         <CheckCircle size={14} /> Found ({result.keywords_found?.length || 0})
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {result.keywords_found?.map(k => <KeywordBadge key={k} word={k} found={true} />) || <span className="text-ink-muted text-xs">None found</span>}
+                        {result.keywords_found?.map(k => <KeywordBadge key={k} word={k} found={true} />) || <span className="text-ink-muted text-xs">None</span>}
                       </div>
                     </div>
                     <div>
@@ -405,12 +464,13 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
                         <XCircle size={14} /> Missing ({result.keywords_missing?.length || 0})
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {result.keywords_missing?.map(k => <KeywordBadge key={k} word={k} found={false} />) || <span className="text-ink-muted text-xs">None missing</span>}
+                        {result.keywords_missing?.map(k => <KeywordBadge key={k} word={k} found={false} />) || <span className="text-ink-muted text-xs">None</span>}
                       </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Suggestions */}
                 {result.suggestions && (
                   <div className="card">
                     <h3 className="font-display text-xl mb-4">Improvement Suggestions</h3>
@@ -431,6 +491,7 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
                   </div>
                 )}
 
+                {/* LinkedIn Tip */}
                 {result.linkedin_tip && (
                   <div className="card border-l-4 border-accent">
                     <div className="flex items-start gap-3">
@@ -440,6 +501,31 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
                         <p className="text-ink-muted text-sm">{result.linkedin_tip}</p>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* AI Assistant after result */}
+                <div className="card bg-gradient-to-br from-accent-light to-white border-accent/20">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center">
+                      <Sparkles size={20} className="text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-display text-xl">AI Resume Coach</h3>
+                      <p className="text-ink-muted text-xs">Apne resume ko aur improve karo — AI se directly poochho</p>
+                    </div>
+                  </div>
+                  <AIAssistant resume={resume} jobDescription={jobDesc} analysisResult={result} />
+                </div>
+
+                {plan === 'free' && (
+                  <div className="card bg-ink text-white text-center py-8">
+                    <Crown size={32} className="text-accent mx-auto mb-3" />
+                    <h3 className="font-display text-2xl mb-2">Unlock Full Analysis</h3>
+                    <p className="text-white/60 text-sm mb-5">Pro plan mein detailed rewrite suggestions aur LinkedIn tips milte hain.</p>
+                    <Link href="/pricing" className="btn-primary mx-auto">
+                      Upgrade to Pro — ₹99/month
+                    </Link>
                   </div>
                 )}
               </div>
