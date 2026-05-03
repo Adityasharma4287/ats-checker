@@ -19,10 +19,7 @@ export async function POST(request) {
     const checksUsed = profile?.checks_used_this_month || 0
 
     if (checksUsed >= limits.checksPerMonth) {
-      return NextResponse.json(
-        { error: 'Monthly limit reached. Please upgrade your plan.' },
-        { status: 429 }
-      )
+      return NextResponse.json({ error: 'Monthly limit reached.' }, { status: 429 })
     }
 
     const { resume, jobDescription } = await request.json()
@@ -32,12 +29,11 @@ export async function POST(request) {
 
     const isProOrHigher = plan === 'pro' || plan === 'unlimited'
 
-    const prompt = `You are an expert ATS (Applicant Tracking System) analyzer. Analyze this resume against the job description and return ONLY valid JSON, no markdown, no explanation.
+    const prompt = `You are an expert ATS analyzer. Analyze this resume against the job description. Return ONLY valid JSON, no markdown.
 
-Return this exact JSON structure:
 {
-  "ats_score": <integer 0-100>,
-  "overall_feedback": "<2-3 sentence specific feedback about THIS resume and THIS job>",
+  "ats_score": <0-100>,
+  "overall_feedback": "<2-3 sentences about THIS specific resume>",
   "score_breakdown": {
     "keyword_match": <0-100>,
     "skills_alignment": <0-100>,
@@ -45,31 +41,22 @@ Return this exact JSON structure:
     "education_fit": <0-100>,
     "format_quality": <0-100>
   },
-  "keywords_found": ["actual", "keywords", "from", "resume"],
-  "keywords_missing": ["important", "keywords", "from", "JD", "missing"],
+  "keywords_found": ["keywords", "actually", "in", "resume"],
+  "keywords_missing": ["important", "missing", "keywords"],
   "suggestions": [
     {
-      "section": "<section name>",
-      "priority": "high|medium|low",
-      "suggestion": "<specific advice for THIS resume>",
-      "example": "<concrete example>"
+      "section": "section name",
+      "priority": "high",
+      "suggestion": "specific advice",
+      "example": "example"
     }
-  ]${isProOrHigher ? ',\n  "linkedin_tip": "<specific LinkedIn tip>"' : ''}
+  ]${isProOrHigher ? ',\n  "linkedin_tip": "tip"' : ''}
 }
 
-Rules:
-- Analyze ONLY what is in the resume
-- keywords_found: max 12 keywords actually in resume
-- keywords_missing: max 10 important JD keywords missing
-- suggestions: ${isProOrHigher ? '6-8' : '3-4'} specific suggestions
-- ats_score: realistic (40-70 range for most resumes)
-- Return ONLY JSON
+RESUME: ${resume}
+JOB DESCRIPTION: ${jobDescription}
 
-RESUME:
-${resume}
-
-JOB DESCRIPTION:
-${jobDescription}`
+Return ONLY JSON.`
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -85,16 +72,16 @@ ${jobDescription}`
       })
     })
 
-    const groqData = await response.json()
+    const data = await response.json()
 
     if (!response.ok) {
-      console.error('Groq error:', groqData)
+      console.error('Groq error:', JSON.stringify(data))
       return NextResponse.json({ error: 'AI analysis failed. Please try again.' }, { status: 500 })
     }
 
-    const rawText = groqData.choices?.[0]?.message?.content?.trim()
+    const rawText = data.choices?.[0]?.message?.content?.trim()
     if (!rawText) {
-      return NextResponse.json({ error: 'No response from AI. Please try again.' }, { status: 500 })
+      return NextResponse.json({ error: 'No response from AI.' }, { status: 500 })
     }
 
     let analysisData
@@ -102,37 +89,29 @@ ${jobDescription}`
       const jsonText = rawText.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
       analysisData = JSON.parse(jsonText)
     } catch {
-      return NextResponse.json({ error: 'Analysis parsing failed. Please try again.' }, { status: 500 })
+      return NextResponse.json({ error: 'Analysis parsing failed.' }, { status: 500 })
     }
 
-    const { data: savedAnalysis } = await serviceClient
-      .from('analyses')
-      .insert({
-        user_id: user.id,
-        resume_text: resume.substring(0, 5000),
-        job_description: jobDescription.substring(0, 3000),
-        ats_score: analysisData.ats_score,
-        score_breakdown: analysisData.score_breakdown,
-        keywords_found: analysisData.keywords_found,
-        keywords_missing: analysisData.keywords_missing,
-        suggestions: analysisData.suggestions,
-        overall_feedback: analysisData.overall_feedback,
-      })
-      .select()
-      .single()
+    await serviceClient.from('analyses').insert({
+      user_id: user.id,
+      resume_text: resume.substring(0, 5000),
+      job_description: jobDescription.substring(0, 3000),
+      ats_score: analysisData.ats_score,
+      score_breakdown: analysisData.score_breakdown,
+      keywords_found: analysisData.keywords_found,
+      keywords_missing: analysisData.keywords_missing,
+      suggestions: analysisData.suggestions,
+      overall_feedback: analysisData.overall_feedback,
+    })
 
-    await serviceClient
-      .from('profiles')
+    await serviceClient.from('profiles')
       .update({ checks_used_this_month: checksUsed + 1 })
       .eq('id', user.id)
 
-    return NextResponse.json({
-      ...analysisData,
-      analysis_id: savedAnalysis?.id,
-    })
+    return NextResponse.json(analysisData)
 
   } catch (error) {
     console.error('Analyze error:', error)
-    return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
   }
 }
