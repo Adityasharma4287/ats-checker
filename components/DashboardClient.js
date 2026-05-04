@@ -277,7 +277,6 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
     const file = e.target?.files?.[0] || e
     if (!file || !file.name) return
     if (file.size > 10 * 1024 * 1024) { setError('File too large. Max 10MB.'); return }
-    
     if (file.type.startsWith('image/')) {
       setError('❌ Image upload nahi hoti. PDF ya .txt file upload karo, ya resume text paste karo.')
       if (fileInputRef.current) fileInputRef.current.value = ''
