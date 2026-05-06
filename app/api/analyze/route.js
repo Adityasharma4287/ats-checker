@@ -19,7 +19,7 @@ export async function POST(request) {
     const checksUsed = profile?.checks_used_this_month || 0
 
     if (checksUsed >= limits.checksPerMonth) {
-      return NextResponse.json({ error: 'Monthly limit reached.' }, { status: 429 })
+      return NextResponse.json({ error: 'Monthly limit reached. Please upgrade your plan.' }, { status: 429 })
     }
 
     const { resume, jobDescription } = await request.json()
@@ -29,11 +29,16 @@ export async function POST(request) {
 
     const isProOrHigher = plan === 'pro' || plan === 'unlimited'
 
-    const prompt = `You are an expert ATS analyzer. Analyze this resume against the job description. Return ONLY valid JSON, no markdown.
+    const prompt = `You are an expert ATS (Applicant Tracking System) analyzer and career coach with 10+ years of experience. 
+
+IMPORTANT: Analyze ONLY the actual content provided. Be specific and reference actual text from the resume.
+
+Analyze this resume against the job description and return ONLY valid JSON:
 
 {
-  "ats_score": <0-100>,
-  "overall_feedback": "<2-3 sentences about THIS specific resume>",
+  "ats_score": <realistic integer 0-100, based on actual keyword matches and relevance>,
+  "score_label": "<one of: Poor Match, Below Average, Average, Good Match, Strong Match, Excellent Match>",
+  "overall_feedback": "<3-4 sentences specifically about THIS resume vs THIS job. Mention actual skills found, what's missing, and key improvements needed>",
   "score_breakdown": {
     "keyword_match": <0-100>,
     "skills_alignment": <0-100>,
@@ -41,22 +46,38 @@ export async function POST(request) {
     "education_fit": <0-100>,
     "format_quality": <0-100>
   },
-  "keywords_found": ["keywords", "actually", "in", "resume"],
-  "keywords_missing": ["important", "missing", "keywords"],
+  "keywords_found": ["actual keywords from resume that match JD"],
+  "keywords_missing": ["important JD keywords NOT in resume"],
+  "strengths": ["3-4 actual strengths found in this resume"],
   "suggestions": [
     {
-      "section": "section name",
-      "priority": "high",
-      "suggestion": "specific advice",
-      "example": "example"
+      "section": "<actual section name>",
+      "priority": "high|medium|low",
+      "issue": "<specific problem in this resume>",
+      "suggestion": "<specific fix>",
+      "example": "<concrete rewrite example using their actual content>"
     }
-  ]${isProOrHigher ? ',\n  "linkedin_tip": "tip"' : ''}
+  ]${isProOrHigher ? `,
+  "rewrite_summary": "<rewritten professional summary tailored for this specific job>",
+  "linkedin_tip": "<specific LinkedIn optimization for this job role>",
+  "interview_tips": ["2-3 tips based on gaps in their resume vs JD"]` : ''}
 }
 
-RESUME: ${resume}
-JOB DESCRIPTION: ${jobDescription}
+SCORING GUIDE:
+- 0-20: Very poor match, most keywords missing
+- 21-40: Below average, some basic matches
+- 41-60: Average match, key skills present but gaps exist  
+- 61-75: Good match, most requirements met
+- 76-90: Strong match, well aligned
+- 91-100: Excellent, near perfect match
 
-Return ONLY JSON.`
+RESUME:
+${resume.substring(0, 4000)}
+
+JOB DESCRIPTION:
+${jobDescription.substring(0, 2000)}
+
+Return ONLY valid JSON. No markdown. No explanation.`
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -66,9 +87,15 @@ Return ONLY JSON.`
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 2000,
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are an ATS expert. Return ONLY valid JSON. No markdown code blocks. No explanation text. Just the raw JSON object.' 
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.2,
+        max_tokens: 2500,
       })
     })
 
@@ -86,10 +113,15 @@ Return ONLY JSON.`
 
     let analysisData
     try {
-      const jsonText = rawText.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
+      const jsonText = rawText
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim()
       analysisData = JSON.parse(jsonText)
-    } catch {
-      return NextResponse.json({ error: 'Analysis parsing failed.' }, { status: 500 })
+    } catch (parseErr) {
+      console.error('Parse error:', parseErr, 'Raw:', rawText.substring(0, 200))
+      return NextResponse.json({ error: 'Analysis parsing failed. Please try again.' }, { status: 500 })
     }
 
     await serviceClient.from('analyses').insert({
@@ -112,6 +144,6 @@ Return ONLY JSON.`
 
   } catch (error) {
     console.error('Analyze error:', error)
-    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error. Please try again.' }, { status: 500 })
   }
 }
