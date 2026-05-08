@@ -143,7 +143,7 @@ export default function PricingClient({ plans, currentPlan, isLoggedIn }) {
 
         <div className="text-center mt-12 text-ink-muted text-sm">
           <p>All prices in INR • Cancel anytime • Secure payments via Razorpay</p>
-          <p className="mt-1">Powered by Aditya Sharma</p>
+          <p className="mt-1">Powered by Anthropic Claude AI</p>
         </div>
       </div>
     </div>
