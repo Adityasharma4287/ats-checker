@@ -1,4 +1,5 @@
 import './globals.css'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata = {
   title: 'ResumeATS — Beat the Bots, Land the Job',
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="font-body bg-paper text-ink antialiased">
         {children}
+        <Analytics />
       </body>
     </html>
   )
