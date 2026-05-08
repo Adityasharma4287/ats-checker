@@ -1,9 +1,14 @@
 import './globals.css'
 
-export const metadata = {
+ export const metadata = {
   title: 'ResumeATS — Beat the Bots, Land the Job',
   description: 'AI-powered ATS resume checker. See your score, find missing keywords, get actionable feedback in seconds.',
   keywords: 'ATS checker, resume score, resume optimizer, job application, keywords',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({ children }) {
