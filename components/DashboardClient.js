@@ -8,7 +8,7 @@ import {
   Crown, AlertCircle, CheckCircle, XCircle,
   TrendingUp, Clock, BarChart3, Upload, File,
   X, Send, Bot, User, Sparkles, Lock,
-  Award, ThumbsUp, ChevronRight, Rocket
+  Award, ThumbsUp, ChevronRight, Rocket, AlertTriangle
 } from 'lucide-react'
 
 function getScoreConfig(score) {
