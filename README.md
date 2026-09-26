@@ -1,120 +1,139 @@
-# ResumeATS — Complete Setup Guide
+<div align="center">
 
-## Kya banaya hai?
-Ek full Micro SaaS — AI-powered ATS Resume Checker with:
-- Free plan: 3 checks/month
-- Pro plan: 50 checks/month (₹99)
-- Unlimited plan: unlimited checks (₹199)
-- Claude AI se analysis
-- Supabase se auth + database
-- Razorpay se Indian payments
+<img src="favicon.png" width="64" alt="ResumeATS Logo"/>
+
+# ResumeATS
+
+### AI-Powered ATS Resume Checker for Indian Job Seekers
+
+<img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js"/>
+<img src="https://img.shields.io/badge/Claude-AI-7c6dfa?style=for-the-badge&logo=anthropic&logoColor=white"/>
+<img src="https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white"/>
+<img src="https://img.shields.io/badge/Razorpay-Payments-02042B?style=for-the-badge&logo=razorpay&logoColor=white"/>
+<img src="https://img.shields.io/badge/Deploy-Vercel-000?style=for-the-badge&logo=vercel"/>
+
+<br/><br/>
+
+**Resume paste karo · Job description daalo · AI ATS score batayega**
+
+</div>
 
 ---
 
-## Step 1 — Project Setup
+## What is ResumeATS?
 
-```bash
-# Project clone/download karo, folder mein jao
-cd ats-checker
+ResumeATS ek AI-powered SaaS tool hai jo aapka resume analyze karta hai aur batata hai ki koi company ka ATS (Applicant Tracking System) usse reject karega ya nahi. Claude AI se powered — real-time analysis, keyword gaps, aur actionable suggestions milti hain.
 
-# Dependencies install karo
-npm install
-
-# .env.local file already bani hai — ab keys fill karo
+```
+Resume + Job Description  →  ATS Score (0-100)  →  Missing Keywords  →  Fix Suggestions
 ```
 
 ---
 
-## Step 2 — Supabase Setup
+## Plans
 
-1. **https://supabase.com** pe jao, free account banao
-2. "New Project" create karo
-3. Project create hone ke baad:
-   - Settings → API → `Project URL` copy karo → `NEXT_PUBLIC_SUPABASE_URL`
-   - Settings → API → `anon public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - Settings → API → `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
-4. SQL Editor mein jao → `lib/schema.sql` ka poora content paste karo → Run karo
-
----
-
-## Step 3 — Anthropic API Key
-
-1. **https://console.anthropic.com** pe jao
-2. API Keys → Create key
-3. Copy karo → `ANTHROPIC_API_KEY` mein paste karo
+| Feature | Free | Pro ₹99/mo | Unlimited ₹199/mo |
+|---------|:----:|:----------:|:-----------------:|
+| Checks/month | 4 | Unlimited | Unlimited |
+| ATS Score (0-100) | ✓ | ✓ | ✓ |
+| Missing keywords | Top 5 | Full list | Full list |
+| Suggestions | Top 2 | All + examples | All + examples |
+| LinkedIn tips | ✗ | ✓ | ✓ |
+| AI Resume Coach | ✗ | ✓ | ✓ |
+| Priority support | ✗ | ✗ | ✓ |
 
 ---
 
-## Step 4 — Razorpay Setup
+## Tech Stack
 
-1. **https://dashboard.razorpay.com** pe account banao (student/individual)
-2. Settings → API Keys → Generate Test Key
-3. `RAZORPAY_KEY_ID` aur `RAZORPAY_KEY_SECRET` fill karo
-4. `NEXT_PUBLIC_RAZORPAY_KEY_ID` = same as KEY_ID
-
-### Razorpay Plans banana (Subscriptions ke liye):
-1. Dashboard → Products → Subscriptions → Plans
-2. "Pro Plan" banao:
-   - Name: Pro Plan
-   - Billing Amount: 9900 (paise mein, matlab ₹99)
-   - Period: Monthly
-   - Plan ID copy karo → `RAZORPAY_PRO_PLAN_ID`
-3. "Unlimited Plan" banao:
-   - Name: Unlimited Plan
-   - Billing Amount: 19900 (matlab ₹199)
-   - Period: Monthly
-   - Plan ID copy karo → `RAZORPAY_UNLIMITED_PLAN_ID`
-
-### Webhook setup:
-1. Dashboard → Settings → Webhooks → Add New
-2. URL: `https://your-domain.com/api/webhook`
-3. Events: subscription.charged, subscription.cancelled, subscription.expired
-4. Secret: apna secret dalo (same as RAZORPAY_KEY_SECRET)
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router) |
+| AI | Anthropic Claude (`@anthropic-ai/sdk`) |
+| Auth + Database | Supabase (`@supabase/ssr`) |
+| Payments | Razorpay (Indian subscriptions) |
+| Styling | Tailwind CSS |
+| Analytics | Vercel Analytics + Speed Insights |
+| Deploy | Vercel |
 
 ---
 
-## Step 5 — .env.local Fill Karo
+## Quick Start
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/Adityasharma4287/ats-checker.git
+cd ats-checker
+npm install
+```
+
+### 2. Environment Variables
+
+`.env.local` file banao:
 
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 
+# Anthropic
 ANTHROPIC_API_KEY=sk-ant-...
 
+# Razorpay
 RAZORPAY_KEY_ID=rzp_test_xxxxx
 RAZORPAY_KEY_SECRET=xxxxx
 NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_xxxxx
 RAZORPAY_PRO_PLAN_ID=plan_xxxxx
 RAZORPAY_UNLIMITED_PLAN_ID=plan_xxxxx
 
+# App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
----
-
-## Step 6 — Run Karo
+### 3. Run
 
 ```bash
 npm run dev
-# http://localhost:3000 pe open karo
+# http://localhost:3000
 ```
 
 ---
 
-## Step 7 — Vercel pe Deploy Karo
+## Setup Guide
 
-```bash
-# Vercel CLI install karo
-npm i -g vercel
+### Supabase
 
-# Deploy karo
-vercel
+1. [supabase.com](https://supabase.com) pe free account banao
+2. New project create karo
+3. **Settings → API** se ye copy karo:
+   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
+4. **SQL Editor** mein `lib/schema.sql` ka content paste karke Run karo
 
-# Environment variables add karo Vercel dashboard mein
-# Project → Settings → Environment Variables
-# Saari .env.local ki values wahan add karo
-```
+### Anthropic API Key
+
+1. [console.anthropic.com](https://console.anthropic.com) pe jaao
+2. **API Keys → Create Key**
+3. Copy karo → `ANTHROPIC_API_KEY`
+
+### Razorpay
+
+1. [dashboard.razorpay.com](https://dashboard.razorpay.com) pe account banao
+2. **Settings → API Keys** → Test key generate karo
+3. `RAZORPAY_KEY_ID` aur `RAZORPAY_KEY_SECRET` fill karo
+4. **Products → Subscriptions → Plans** mein 2 plans banao:
+
+| Plan | Amount (paise) | Monthly |
+|------|---------------|---------|
+| Pro Plan | `9900` (₹99) | ✓ |
+| Unlimited Plan | `19900` (₹199) | ✓ |
+
+5. **Settings → Webhooks** pe add karo:
+   - URL: `https://your-domain.com/api/webhook`
+   - Events: `subscription.charged`, `subscription.cancelled`, `subscription.expired`
 
 ---
 
@@ -123,53 +142,94 @@ vercel
 ```
 ats-checker/
 ├── app/
-│   ├── page.js              ← Homepage (landing page)
-│   ├── layout.js            ← Root layout
-│   ├── globals.css          ← Global styles
-│   ├── login/page.js        ← Login page
-│   ├── signup/page.js       ← Signup page
-│   ├── dashboard/page.js    ← Main checker (protected)
-│   ├── pricing/page.js      ← Pricing page
+│   ├── page.js                      # Landing page
+│   ├── layout.js                    # Root layout
+│   ├── globals.css                  # Global styles
+│   ├── login/page.js                # Login
+│   ├── signup/page.js               # Signup
+│   ├── dashboard/page.js            # ATS Checker (protected)
+│   ├── pricing/page.js              # Pricing page
 │   └── api/
-│       ├── analyze/route.js         ← Claude AI analysis
-│       ├── create-subscription/     ← Razorpay subscription create
-│       ├── verify-payment/          ← Payment verification
-│       └── webhook/route.js         ← Razorpay webhooks
+│       ├── analyze/route.js         # Claude AI analysis endpoint
+│       ├── chat/route.js            # AI Resume Coach chat
+│       ├── create-subscription/     # Razorpay subscription
+│       ├── verify-payment/          # Payment verification
+│       ├── webhook/route.js         # Razorpay webhooks
+│       └── auth/callback/route.js   # Supabase auth callback
 ├── components/
-│   ├── DashboardClient.js   ← Full checker UI + results
-│   └── PricingClient.js     ← Pricing page with payment
+│   ├── DashboardClient.js           # Full checker UI + results
+│   └── PricingClient.js             # Pricing + payment UI
 ├── lib/
-│   ├── supabase-browser.js  ← Client-side Supabase
-│   ├── supabase-server.js   ← Server-side Supabase
-│   ├── plans.js             ← Plan config & limits
-│   └── schema.sql           ← Database schema (Supabase mein run karo)
-├── middleware.js             ← Auth protection
-└── .env.local               ← Environment variables
+│   ├── supabase-browser.js          # Client-side Supabase client
+│   ├── supabase-server.js           # Server-side Supabase client
+│   ├── plans.js                     # Plan config & limits
+│   └── schema.sql                   # Database schema
+├── middleware.js                     # Auth route protection
+├── next.config.js
+├── tailwind.config.js
+└── .env.local                        # Environment variables
 ```
 
 ---
 
-## Features by Plan
+## Deploy on Vercel
 
-| Feature | Free | Pro | Unlimited |
-|---------|------|-----|-----------|
-| Checks/month | 3 | 50 | Unlimited |
-| ATS Score | ✓ | ✓ | ✓ |
-| Keywords | Basic (5) | Full | Full |
-| Suggestions | 3-4 | 6-8 | 6-8 |
-| LinkedIn tip | ✗ | ✓ | ✓ |
-| Score breakdown | ✓ | ✓ | ✓ |
+```bash
+# Vercel CLI install karo
+npm i -g vercel
+
+# Deploy karo
+vercel
+
+# Production deploy
+vercel --prod
+```
+
+Vercel Dashboard → Project → **Settings → Environment Variables** mein saari `.env.local` values add karo. Webhook URL update karo production domain se.
 
 ---
 
 ## Test Cards (Razorpay Test Mode)
 
-- Card: 4111 1111 1111 1111
-- Expiry: any future date
-- CVV: any 3 digits
-- Name: any name
+```
+Card Number : 4111 1111 1111 1111
+Expiry      : Any future date (e.g. 12/26)
+CVV         : Any 3 digits
+Name        : Any name
+
+UPI         : success@razorpay
+```
 
 ---
 
-## Support
-Koi problem aaye to `.env.local` pehle check karo — 90% errors wahan se hoti hain.
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/analyze` | Resume + JD analyze karo (Claude AI) |
+| `POST` | `/api/chat` | AI Resume Coach chat |
+| `POST` | `/api/create-subscription` | Razorpay subscription banao |
+| `POST` | `/api/verify-payment` | Payment verify + plan activate |
+| `POST` | `/api/webhook` | Razorpay subscription events |
+| `GET` | `/auth/callback` | Supabase OAuth callback |
+
+---
+
+## Security Notes
+
+- `.env.local` kabhi GitHub pe push mat karo
+- `SUPABASE_SERVICE_ROLE_KEY` sirf server-side use karo
+- `RAZORPAY_KEY_SECRET` kabhi frontend mein expose mat karo
+- Production mein Razorpay Live keys use karo
+
+---
+
+## License
+
+MIT — Free to use and modify.
+
+---
+
+<div align="center">
+<sub>Made with ❤️ by <strong>Aditya Sharma</strong> 🇮🇳</sub>
+</div>
