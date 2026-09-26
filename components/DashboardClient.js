@@ -361,15 +361,6 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
         )}
       </div>
 
-      {/* Feature badges - moved below header */}
-      <div className="max-w-7xl mx-auto px-6 pt-4">
-        <div className="flex flex-wrap items-center gap-6 text-xs text-ink-muted">
-          <span className="flex items-center gap-1.5"><Rocket size={11} className="text-accent" /> AI-Powered Analysis</span>
-          <span className="flex items-center gap-1.5"><CheckCircle size={11} className="text-success" /> Unlimited Checks</span>
-          <span className="flex items-center gap-1.5"><Sparkles size={11} className="text-accent" /> Hindi + English Support</span>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="grid lg:grid-cols-4 gap-6">
 
@@ -812,6 +803,15 @@ export default function DashboardClient({ user, profile, plan, checksLeft, check
               <AICoach resume={resume} jobDescription={jobDesc} analysisResult={result} plan={plan} />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Feature badges - at the bottom of the page */}
+      <div className="max-w-7xl mx-auto px-6 pb-8">
+        <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-ink-muted border-t border-black/5 pt-6">
+          <span className="flex items-center gap-1.5"><Rocket size={11} className="text-accent" /> AI-Powered Analysis</span>
+          <span className="flex items-center gap-1.5"><CheckCircle size={11} className="text-success" /> Unlimited Checks</span>
+          <span className="flex items-center gap-1.5"><Sparkles size={11} className="text-accent" /> Hindi + English Support</span>
         </div>
       </div>
     </div>
