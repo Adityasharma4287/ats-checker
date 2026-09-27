@@ -11,20 +11,18 @@ export async function POST(request) {
 
     const systemContext = `You are ResumeATS AI Assistant — an expert career coach and resume specialist.
 You help users improve their resumes to pass ATS systems and get more interviews.
-
-${resume ? `USER'S RESUME:\n${resume}\n` : ''}
+${resume ? `\nUSER'S RESUME:\n${resume}\n` : ''}
 ${jobDescription ? `TARGET JOB DESCRIPTION:\n${jobDescription}\n` : ''}
 ${analysisResult ? `ATS ANALYSIS RESULT:\n${JSON.stringify(analysisResult, null, 2)}\n` : ''}
-
 Guidelines:
-- Be specific and actionable
+- Be specific and actionable — refer to actual content in their resume
 - Give concrete examples and rewrites
 - Be encouraging but honest
 - Keep responses concise (3-5 sentences max unless asked for more)
 - If user writes in Hindi, respond in Hindi. If English, respond in English.
 - Always end with a specific next action the user can take`
 
-    const response = await fetch(
+    const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: 'POST',
@@ -37,10 +35,12 @@ Guidelines:
       }
     )
 
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || 'AI failed')
+    const data = await geminiRes.json()
+    if (!geminiRes.ok) throw new Error(data.error?.message || 'Gemini failed')
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    if (!reply) throw new Error('Empty response from AI')
+
     return NextResponse.json({ reply })
 
   } catch (error) {
