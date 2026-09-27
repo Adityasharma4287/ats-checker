@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
-import Anthropic from '@anthropic-ai/sdk'
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
 
 export async function POST(request) {
   try {
@@ -22,23 +17,30 @@ ${jobDescription ? `TARGET JOB DESCRIPTION:\n${jobDescription}\n` : ''}
 ${analysisResult ? `ATS ANALYSIS RESULT:\n${JSON.stringify(analysisResult, null, 2)}\n` : ''}
 
 Guidelines:
-- Be specific and actionable — refer to actual content in their resume
+- Be specific and actionable
 - Give concrete examples and rewrites
 - Be encouraging but honest
 - Keep responses concise (3-5 sentences max unless asked for more)
 - If user writes in Hindi, respond in Hindi. If English, respond in English.
 - Always end with a specific next action the user can take`
 
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
-      system: systemContext,
-      messages: [
-        { role: 'user', content: message }
-      ],
-    })
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemContext }] },
+          contents: [{ parts: [{ text: message }] }],
+          generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+        })
+      }
+    )
 
-    const reply = response.content[0]?.text?.trim()
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error?.message || 'AI failed')
+
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
     return NextResponse.json({ reply })
 
   } catch (error) {
