@@ -29,7 +29,7 @@ export async function POST(request) {
 
     const isProOrHigher = plan === 'pro' || plan === 'unlimited'
 
-    const prompt = `You are an expert ATS (Applicant Tracking System) analyzer and career coach with 10+ years of experience. 
+    const prompt = `You are an expert ATS (Applicant Tracking System) analyzer and career coach with 10+ years of experience.
 
 IMPORTANT: Analyze ONLY the actual content provided. Be specific and reference actual text from the resume.
 
@@ -66,7 +66,7 @@ Analyze this resume against the job description and return ONLY valid JSON:
 SCORING GUIDE:
 - 0-20: Very poor match, most keywords missing
 - 21-40: Below average, some basic matches
-- 41-60: Average match, key skills present but gaps exist  
+- 41-60: Average match, key skills present but gaps exist
 - 61-75: Good match, most requirements met
 - 76-90: Strong match, well aligned
 - 91-100: Excellent, near perfect match
@@ -79,34 +79,30 @@ ${jobDescription.substring(0, 2000)}
 
 Return ONLY valid JSON. No markdown. No explanation.`
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are an ATS expert. Return ONLY valid JSON. No markdown code blocks. No explanation text. Just the raw JSON object.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.2,
-        max_tokens: 2500,
-      })
-    })
+    // Gemini API call
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 2500,
+            temperature: 0.2,
+          }
+        })
+      }
+    )
 
-    const data = await response.json()
+    const geminiData = await geminiRes.json()
 
-    if (!response.ok) {
-      console.error('Groq error:', JSON.stringify(data))
+    if (!geminiRes.ok) {
+      console.error('Gemini error:', JSON.stringify(geminiData))
       return NextResponse.json({ error: 'AI analysis failed. Please try again.' }, { status: 500 })
     }
 
-    const rawText = data.choices?.[0]?.message?.content?.trim()
+    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
     if (!rawText) {
       return NextResponse.json({ error: 'No response from AI.' }, { status: 500 })
     }
