@@ -9,42 +9,53 @@ export async function POST(request) {
 
     const { message, resume, jobDescription, analysisResult } = await request.json()
 
+    // DEBUG: Check if API key exists
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      console.error('GEMINI_API_KEY is not set!')
+      return NextResponse.json({ error: 'API key not configured. Contact support.' }, { status: 500 })
+    }
+
     const systemContext = `You are ResumeATS AI Assistant — an expert career coach and resume specialist.
 You help users improve their resumes to pass ATS systems and get more interviews.
 ${resume ? `\nUSER'S RESUME:\n${resume}\n` : ''}
 ${jobDescription ? `TARGET JOB DESCRIPTION:\n${jobDescription}\n` : ''}
 ${analysisResult ? `ATS ANALYSIS RESULT:\n${JSON.stringify(analysisResult, null, 2)}\n` : ''}
 Guidelines:
-- Be specific and actionable — refer to actual content in their resume
-- Give concrete examples and rewrites
-- Be encouraging but honest
-- Keep responses concise (3-5 sentences max unless asked for more)
+- Be specific and actionable
+- Give concrete examples
+- Keep responses concise (3-5 sentences max)
 - If user writes in Hindi, respond in Hindi. If English, respond in English.
-- Always end with a specific next action the user can take`
+- Always end with a specific next action`
+
+    const fullPrompt = systemContext + '\n\nUser: ' + message
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemContext }] },
-          contents: [{ parts: [{ text: message }] }],
+          contents: [{ parts: [{ text: fullPrompt }] }],
           generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
         })
       }
     )
 
     const data = await geminiRes.json()
-    if (!geminiRes.ok) throw new Error(data.error?.message || 'Gemini failed')
+
+    if (!geminiRes.ok) {
+      console.error('Gemini API error:', JSON.stringify(data))
+      throw new Error(data.error?.message || 'Gemini API failed')
+    }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
-    if (!reply) throw new Error('Empty response from AI')
+    if (!reply) throw new Error('Empty response from Gemini')
 
     return NextResponse.json({ reply })
 
   } catch (error) {
-    console.error('Chat error:', error)
-    return NextResponse.json({ error: 'Chat failed. Please try again.' }, { status: 500 })
+    console.error('Chat error:', error.message)
+    return NextResponse.json({ error: 'Chat failed: ' + error.message }, { status: 500 })
   }
 }
