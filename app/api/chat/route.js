@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import Anthropic from '@anthropic-ai/sdk'
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
 
 export async function POST(request) {
   try {
@@ -24,27 +29,16 @@ Guidelines:
 - If user writes in Hindi, respond in Hindi. If English, respond in English.
 - Always end with a specific next action the user can take`
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: systemContext },
-          { role: 'user', content: message }
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      })
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      system: systemContext,
+      messages: [
+        { role: 'user', content: message }
+      ],
     })
 
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error?.message || 'AI failed')
-
-    const reply = data.choices?.[0]?.message?.content?.trim()
+    const reply = response.content[0]?.text?.trim()
     return NextResponse.json({ reply })
 
   } catch (error) {
